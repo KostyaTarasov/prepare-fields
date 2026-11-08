@@ -31,6 +31,14 @@ def test_specs_are_normalized_and_empty_values_dropped() -> None:
     assert product.description == ""
 
 
+def test_synonym_keys_collapse_into_one_spec() -> None:
+    product = parse_products(
+        '{"name": "a", "specs": {"точность": "1,5", "класс точности": "0,6"}}'
+    )[0]
+
+    assert [(spec.name, spec.value) for spec in product.specs] == [("Класс точности", "0,6")]
+
+
 @pytest.mark.parametrize(
     ("raw", "message"),
     [

@@ -20,7 +20,7 @@ def _specs(raw: object) -> tuple[Spec, ...]:
         return ()
     if not isinstance(raw, dict):
         raise InputError(f"поле specs: ожидался объект, получено {type(raw).__name__}")
-    specs = []
+    specs: dict[str, str] = {}
     for key, value in raw.items():
         if not isinstance(value, _SCALARS):
             raise InputError(
@@ -29,8 +29,8 @@ def _specs(raw: object) -> tuple[Spec, ...]:
             )
         text = str(value).strip()
         if text:
-            specs.append(Spec(name=canonical_key(key), value=text))
-    return tuple(specs)
+            specs[canonical_key(key)] = text
+    return tuple(Spec(name=name, value=value) for name, value in specs.items())
 
 
 def _product(raw: object, number: int) -> Product:
