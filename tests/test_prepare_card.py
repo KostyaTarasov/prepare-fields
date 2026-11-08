@@ -43,8 +43,17 @@ class FakePrompts:
     def card(self, product: Product, missing: dict[str, str]) -> str:
         return f"card {product.name} missing={sorted(missing)}"
 
-    def retry(self, draft: Draft, violations: list[str]) -> str:
-        return f"retry {draft.seo_title} violations={list(violations)}"
+    def retry(
+        self,
+        product: Product,
+        missing: dict[str, str],
+        draft: Draft,
+        violations: list[str],
+    ) -> str:
+        return (
+            f"retry {product.name} missing={sorted(missing)} "
+            f"{draft.seo_title} violations={list(violations)}"
+        )
 
 
 def test_clean_draft_passes_without_retry() -> None:
@@ -96,3 +105,21 @@ def test_llm_error_is_propagated() -> None:
 
     with pytest.raises(LLMError, match="все модели отказали"):
         PrepareCard(writer, FakePrompts())(PRODUCT)
+
+
+def test_retry_prompt_carries_input_data() -> None:
+    writer = FakeWriter(draft(title="з" * 71), draft())
+
+    PrepareCard(writer, FakePrompts())(PRODUCT)
+
+    assert PRODUCT.name in writer.prompts[1]
+
+
+def test_failed_retry_request_keeps_first_draft() -> None:
+    first = draft(description="о" * 400)
+    writer = FakeWriter(first, LLMError("лимит провайдера"))
+
+    card = PrepareCard(writer, FakePrompts())(PRODUCT)
+
+    assert card.draft is first
+    assert card.warnings == ("SEO-описание: 400 симв., нужно от 800 до 1200",)

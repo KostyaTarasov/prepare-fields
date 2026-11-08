@@ -1,5 +1,6 @@
 import json
 from collections.abc import Mapping, Sequence
+from dataclasses import asdict
 from importlib import resources
 from string import Template
 
@@ -17,32 +18,35 @@ def _dump(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, indent=2)
 
 
-class FilePrompts:
-    """Шаблоны промптов из prompts/*.tmpl, подстановка без склейки текста в коде."""
+def _payload(product: Product) -> dict[str, object]:
+    return {
+        "name": product.name,
+        "manufacturer": product.manufacturer,
+        "specs": {spec.name: spec.value for spec in product.specs},
+        "description": product.description,
+    }
 
+
+class FilePrompts:
     def system(self) -> str:
         return _read("system.tmpl")
 
     def card(self, product: Product, missing: Mapping[str, str]) -> str:
-        payload = {
-            "name": product.name,
-            "manufacturer": product.manufacturer,
-            "specs": {spec.name: spec.value for spec in product.specs},
-            "description": product.description,
-        }
         return Template(_read("card.tmpl")).substitute(
-            input_json=_dump(payload),
+            input_json=_dump(_payload(product)),
             missing=", ".join(missing) or _ALL_PRESENT,
         )
 
-    def retry(self, draft: Draft, violations: Sequence[str]) -> str:
-        previous = {
-            "seo_title": draft.seo_title,
-            "seo_description": draft.seo_description,
-            "search_queries": list(draft.search_queries),
-            "commercial": draft.commercial,
-        }
+    def retry(
+        self,
+        product: Product,
+        missing: Mapping[str, str],
+        draft: Draft,
+        violations: Sequence[str],
+    ) -> str:
         return Template(_read("retry.tmpl")).substitute(
-            previous=_dump(previous),
+            input_json=_dump(_payload(product)),
+            missing=", ".join(missing) or _ALL_PRESENT,
+            previous=_dump(asdict(draft)),
             violations="\n".join(f"- {item}" for item in violations),
         )
