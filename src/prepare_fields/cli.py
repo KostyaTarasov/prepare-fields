@@ -54,12 +54,12 @@ def _read(source: str) -> str:
         raise InputError(f"файл не прочитан: {err}") from err
 
 
-def _prepare(prepare: PrepareCard, product: Product) -> Card | str:
+def _prepare(prepare: PrepareCard, product: Product) -> Card | tuple[str, str]:
     try:
         return prepare(product)
     except LLMError as err:
         log.error("товар %r: %s", product.name, err)
-        return str(err).splitlines()[0]
+        return product.name, str(err).splitlines()[0]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -88,11 +88,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         results = list(pool.map(lambda product: _prepare(prepare, product), products))
 
     cards = [result for result in results if isinstance(result, Card)]
-    failures = [
-        (product.name, result)
-        for product, result in zip(products, results, strict=True)
-        if isinstance(result, str)
-    ]
+    failures = [result for result in results if not isinstance(result, Card)]
 
     if arguments.format == "json":
         payload = [render_json(card) for card in cards]

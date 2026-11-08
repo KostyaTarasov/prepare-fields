@@ -18,13 +18,18 @@ def _dump(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, indent=2)
 
 
-def _payload(product: Product) -> dict[str, object]:
-    return {
+def _render(name: str, product: Product, missing: Mapping[str, str], **extra: str) -> str:
+    payload = {
         "name": product.name,
         "manufacturer": product.manufacturer,
         "specs": {spec.name: spec.value for spec in product.specs},
         "description": product.description,
     }
+    return Template(_read(name)).substitute(
+        input_json=_dump(payload),
+        missing=", ".join(missing) or _ALL_PRESENT,
+        **extra,
+    )
 
 
 class FilePrompts:
@@ -32,10 +37,7 @@ class FilePrompts:
         return _read("system.tmpl")
 
     def card(self, product: Product, missing: Mapping[str, str]) -> str:
-        return Template(_read("card.tmpl")).substitute(
-            input_json=_dump(_payload(product)),
-            missing=", ".join(missing) or _ALL_PRESENT,
-        )
+        return _render("card.tmpl", product, missing)
 
     def retry(
         self,
@@ -44,9 +46,10 @@ class FilePrompts:
         draft: Draft,
         violations: Sequence[str],
     ) -> str:
-        return Template(_read("retry.tmpl")).substitute(
-            input_json=_dump(_payload(product)),
-            missing=", ".join(missing) or _ALL_PRESENT,
+        return _render(
+            "retry.tmpl",
+            product,
+            missing,
             previous=_dump(asdict(draft)),
             violations="\n".join(f"- {item}" for item in violations),
         )

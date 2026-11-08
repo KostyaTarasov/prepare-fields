@@ -66,13 +66,9 @@ def _numbers(text: str) -> set[str]:
     return {_normalize_number(match.group()) for match in _NUMBER.finditer(text)}
 
 
-def source_text(product: Product) -> str:
-    specs = " ".join(f"{spec.name} {spec.value}" for spec in product.specs)
-    return f"{product.name} {product.manufacturer} {specs} {product.description}"
-
-
 def invented_numbers(draft: Draft, product: Product) -> tuple[str, ...]:
-    known = _numbers(source_text(product))
+    specs = " ".join(f"{spec.name} {spec.value}" for spec in product.specs)
+    known = _numbers(f"{product.name} {product.manufacturer} {specs} {product.description}")
     generated = _numbers(
         " ".join([draft.seo_title, draft.seo_description, draft.commercial, *draft.search_queries])
     )

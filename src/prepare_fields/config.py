@@ -7,6 +7,10 @@ from prepare_fields.errors import ConfigError
 
 _DURATION = re.compile(r"^(\d+(?:\.\d+)?)(ms|s|m)?$")
 _UNITS = {"ms": 0.001, "s": 1.0, "m": 60.0, None: 1.0}
+_PROVIDERS = (
+    ("основной", "LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL"),
+    ("резервный", "LLM_FALLBACK_BASE_URL", "LLM_FALLBACK_API_KEY", "LLM_FALLBACK_MODELS"),
+)
 
 
 @dataclass(frozen=True)
@@ -59,19 +63,21 @@ def _number(raw: str, name: str, low: float, high: float) -> float:
     return value
 
 
-def _models(raw: str) -> tuple[str, ...]:
-    return tuple(model.strip() for model in raw.split(",") if model.strip())
-
-
-def _provider(name: str, base_url: str, api_key: str, models: str) -> Provider | None:
+def _provider(
+    name: str, url_variable: str, key_variable: str, models_variable: str
+) -> Provider | None:
+    base_url = os.environ.get(url_variable, "")
+    api_key = os.environ.get(key_variable, "")
     if not api_key.strip() or not base_url.strip():
         return None
     if not base_url.startswith(("http://", "https://")):
         raise ConfigError(f"{name}: базовый URL должен начинаться с http:// или https://")
-    parsed = _models(models)
-    if not parsed:
+    models = tuple(
+        model.strip() for model in os.environ.get(models_variable, "").split(",") if model.strip()
+    )
+    if not models:
         raise ConfigError(f"{name}: не задана ни одна модель")
-    return Provider(name=name, base_url=base_url.rstrip("/"), api_key=api_key, models=parsed)
+    return Provider(name=name, base_url=base_url.rstrip("/"), api_key=api_key, models=models)
 
 
 def load(env_file: Path | None = Path(".env")) -> Config:
@@ -80,20 +86,7 @@ def load(env_file: Path | None = Path(".env")) -> Config:
 
     providers = tuple(
         provider
-        for provider in (
-            _provider(
-                "основной",
-                os.environ.get("LLM_BASE_URL", ""),
-                os.environ.get("LLM_API_KEY", ""),
-                os.environ.get("LLM_MODEL", ""),
-            ),
-            _provider(
-                "резервный",
-                os.environ.get("LLM_FALLBACK_BASE_URL", ""),
-                os.environ.get("LLM_FALLBACK_API_KEY", ""),
-                os.environ.get("LLM_FALLBACK_MODELS", ""),
-            ),
-        )
+        for provider in (_provider(*variables) for variables in _PROVIDERS)
         if provider is not None
     )
     if not providers:
