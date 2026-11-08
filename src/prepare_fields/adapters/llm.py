@@ -11,6 +11,7 @@ from prepare_fields.errors import LLMError
 log = logging.getLogger(__name__)
 
 _SNIPPET = 300
+_USER_AGENT = "prepare-fields/0.1"
 
 
 def _snippet(raw: bytes | str) -> str:
@@ -85,6 +86,7 @@ class ChatDraftWriter:
             headers={
                 "Authorization": f"Bearer {provider.api_key}",
                 "Content-Type": "application/json",
+                "User-Agent": _USER_AGENT,
             },
         )
         try:
