@@ -1,0 +1,28 @@
+[
+  {
+    "name": "БП14Б-Д4.2-24 блок питания 2-х или 4-х канальный",
+    "manufacturer": "ОВЕН",
+    "specs": {
+      "артикул": "БП14Б-Д4.2-24",
+      "цена": "1769 RUR"
+    },
+    "description": "",
+    "url": "https://www.souz-pribor.ru/product/bp14b-d4/",
+    "image": "https://www.souz-pribor.ru/upload/iblock/0a0/0a046d035b8c3cbbb1bf69d240629364.jpg",
+    "vendor_code": "15064",
+    "id": "70363"
+  },
+  {
+    "name": "БП14Б-Д4.4-24 блок питания 2-х или 4-х канальный",
+    "manufacturer": "ОВЕН",
+    "specs": {
+      "артикул": "БП14Б-Д4.4-24",
+      "цена": "6832 RUR"
+    },
+    "description": "",
+    "url": "https://www.souz-pribor.ru/product/bp14b-d4/",
+    "image": "https://www.souz-pribor.ru/upload/iblock/f35/ja1x2q3jdtlt90ikzefbj3a9ie9o23ru/31.jpg",
+    "vendor_code": "16513",
+    "id": "70365"
+  }
+]
