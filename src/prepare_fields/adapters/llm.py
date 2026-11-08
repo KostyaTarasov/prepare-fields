@@ -13,6 +13,11 @@ log = logging.getLogger(__name__)
 
 _SNIPPET = 300
 _USER_AGENT = "prepare-fields/0.1"
+_HYPHENS = str.maketrans({"\u2010": "-", "\u2011": "-"})
+
+
+def _clean(text: str) -> str:
+    return text.strip().translate(_HYPHENS)
 
 
 def _hide_key(text: str, api_key: str) -> str:
@@ -49,10 +54,10 @@ def parse_draft(content: str) -> Draft:
         raise LLMError("поле search_queries должно быть списком строк")
 
     return Draft(
-        seo_title=data["seo_title"].strip(),
-        seo_description=data["seo_description"].strip(),
-        search_queries=tuple(item.strip() for item in queries if item.strip()),
-        commercial=data["commercial"].strip(),
+        seo_title=_clean(data["seo_title"]),
+        seo_description=_clean(data["seo_description"]),
+        search_queries=tuple(_clean(item) for item in queries if item.strip()),
+        commercial=_clean(data["commercial"]),
     )
 
 
