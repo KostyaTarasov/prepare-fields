@@ -12,6 +12,14 @@ _KEY_ALIASES: Mapping[str, tuple[str, ...]] = {
     "Интерфейсы": ("интерфейсы", "интерфейс", "выходной сигнал"),
 }
 
+_REQUIRED_SPECS = (
+    "Диапазон измерений",
+    "Класс точности",
+    "Питание",
+    "Тип корпуса",
+    "Интерфейсы",
+)
+
 _SPACES = re.compile(r"\s+")
 
 
@@ -43,9 +51,8 @@ def canonical_key(key: str) -> str:
 
 
 def missing_fields(product: Product) -> dict[str, str]:
-    """Поля, без которых контент-менеджеру придётся дописывать карточку руками."""
-    present = {spec.name for spec in product.specs}
-    missing = {key: NO_DATA for key in _KEY_ALIASES if key not in present}
+    present = {spec.name for spec in product.specs if spec.value != NO_DATA}
+    missing = {key: NO_DATA for key in _REQUIRED_SPECS if key not in present}
     if not product.manufacturer.strip():
         missing["Производитель"] = NO_DATA
     if not product.description.strip():

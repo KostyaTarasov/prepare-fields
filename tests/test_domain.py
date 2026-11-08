@@ -79,6 +79,15 @@ def test_missing_fields_empty_when_everything_filled() -> None:
     ("value", "expected"),
     [
         (draft(), ()),
+        (draft(title="з" * 70), ()),
+        (draft(description="о" * 800), ()),
+        (draft(description="о" * 1200), ()),
+        (draft(queries=("один", "два", "три")), ()),
+        (draft(queries=("1", "2", "3", "4", "5")), ()),
+        (
+            draft(queries=("1", "2", "3", "4", "5", "6")),
+            ("поисковых запросов: 6, нужно от 3 до 5",),
+        ),
         (draft(title="з" * 71), ("SEO-заголовок: 71 симв., допустимо до 70",)),
         (draft(title="  "), ("SEO-заголовок пустой",)),
         (draft(description="о" * 799), ("SEO-описание: 799 симв., нужно от 800 до 1200",)),
@@ -108,3 +117,27 @@ def test_invented_numbers(generated: str, expected: tuple[str, ...]) -> None:
     )
 
     assert invented_numbers(draft(description=generated, commercial=""), source) == expected
+
+
+@pytest.mark.parametrize("field", ["title", "commercial", "queries"])
+def test_invented_numbers_cover_every_generated_field(field: str) -> None:
+    source = product(specs=(Spec("Класс точности", "1,5"),), description="")
+    fields = {
+        "title": {"title": "Прибор 777"},
+        "commercial": {"commercial": "Выдерживает 777 циклов"},
+        "queries": {"queries": ("прибор 777", "прибор", "манометр")},
+    }
+
+    assert invented_numbers(draft(**fields[field]), source) == ("777",)
+
+
+def test_known_numbers_from_name_and_manufacturer_are_allowed() -> None:
+    source = Product(name="ТРМ1", manufacturer="ОВЕН 2", specs=(), description="")
+
+    assert invented_numbers(draft(description="ТРМ1 от ОВЕН 2"), source) == ()
+
+
+def test_leading_zeros_do_not_look_invented() -> None:
+    source = Product(name="Манометр DM 02", manufacturer="Манотомь", specs=(), description="")
+
+    assert invented_numbers(draft(description="Манометр DM 2"), source) == ()

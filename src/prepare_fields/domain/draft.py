@@ -15,8 +15,6 @@ _NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 
 @dataclass(frozen=True)
 class Draft:
-    """Часть карточки, которую пишет модель: только текст, без технических значений."""
-
     seo_title: str
     seo_description: str
     search_queries: tuple[str, ...]
@@ -59,7 +57,9 @@ def check_limits(draft: Draft) -> tuple[str, ...]:
 
 def _normalize_number(token: str) -> str:
     value = token.replace(",", ".")
-    return value.rstrip("0").rstrip(".") if "." in value else value
+    if "." in value:
+        return value.rstrip("0").rstrip(".")
+    return value.lstrip("0") or "0"
 
 
 def _numbers(text: str) -> set[str]:
@@ -72,7 +72,8 @@ def source_text(product: Product) -> str:
 
 
 def invented_numbers(draft: Draft, product: Product) -> tuple[str, ...]:
-    """Числа из текста модели, которых нет во входных данных, — кандидаты в выдумку."""
     known = _numbers(source_text(product))
-    generated = _numbers(" ".join([draft.seo_title, draft.seo_description, draft.commercial]))
+    generated = _numbers(
+        " ".join([draft.seo_title, draft.seo_description, draft.commercial, *draft.search_queries])
+    )
     return tuple(sorted(generated - known))
