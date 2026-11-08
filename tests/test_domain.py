@@ -59,6 +59,13 @@ def test_missing_fields_lists_required_specs_and_description() -> None:
     }
 
 
+def test_missing_fields_reports_absent_manufacturer() -> None:
+    bare = Product(name="БП14Б", manufacturer=" ", specs=(), description="текст")
+
+    assert bare.title == "БП14Б"
+    assert "Производитель" in missing_fields(bare)
+
+
 def test_missing_fields_empty_when_everything_filled() -> None:
     specs = tuple(
         Spec(name, "значение")

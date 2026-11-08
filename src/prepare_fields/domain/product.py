@@ -30,7 +30,8 @@ class Product:
 
     @property
     def title(self) -> str:
-        return f"{self.name} ({self.manufacturer})" if self.manufacturer else self.name
+        manufacturer = self.manufacturer.strip()
+        return f"{self.name} ({manufacturer})" if manufacturer else self.name
 
 
 def canonical_key(key: str) -> str:
@@ -45,6 +46,8 @@ def missing_fields(product: Product) -> dict[str, str]:
     """Поля, без которых контент-менеджеру придётся дописывать карточку руками."""
     present = {spec.name for spec in product.specs}
     missing = {key: NO_DATA for key in _KEY_ALIASES if key not in present}
+    if not product.manufacturer.strip():
+        missing["Производитель"] = NO_DATA
     if not product.description.strip():
         missing["Описание или фрагмент техпаспорта"] = NO_DATA
     return missing
