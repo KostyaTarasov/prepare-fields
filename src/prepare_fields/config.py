@@ -29,11 +29,14 @@ def load_env_file(path: Path) -> None:
     if not path.is_file():
         return
     for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
+        line = line.strip().removeprefix("export ")
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+        value = value.strip()
+        if not value.startswith(('"', "'")):
+            value = value.split(" #", 1)[0].strip()
+        os.environ.setdefault(key.strip(), value.strip("\"'"))
 
 
 def _duration(raw: str, name: str) -> float:

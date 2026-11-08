@@ -1,6 +1,6 @@
 import json
 
-from prepare_fields.domain.product import Product, Spec, canonical_key
+from prepare_fields.domain.product import NO_DATA, Product, Spec, canonical_key
 from prepare_fields.errors import InputError
 
 _SCALARS = (str, int, float)
@@ -10,7 +10,7 @@ def _text(raw: dict[str, object], key: str) -> str:
     value = raw.get(key, "")
     if value is None:
         return ""
-    if not isinstance(value, _SCALARS):
+    if isinstance(value, bool) or not isinstance(value, _SCALARS):
         raise InputError(f"поле {key}: ожидалась строка, получено {type(value).__name__}")
     return str(value).strip()
 
@@ -22,14 +22,12 @@ def _specs(raw: object) -> tuple[Spec, ...]:
         raise InputError(f"поле specs: ожидался объект, получено {type(raw).__name__}")
     specs: dict[str, str] = {}
     for key, value in raw.items():
-        if not isinstance(value, _SCALARS):
+        if isinstance(value, bool) or not isinstance(value, _SCALARS):
             raise InputError(
                 f"характеристика {key!r}: ожидалось простое значение, "
                 f"получено {type(value).__name__}"
             )
-        text = str(value).strip()
-        if text:
-            specs[canonical_key(key)] = text
+        specs[canonical_key(key)] = str(value).strip() or NO_DATA
     return tuple(Spec(name=name, value=value) for name, value in specs.items())
 
 

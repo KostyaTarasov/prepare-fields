@@ -5,6 +5,10 @@ from prepare_fields.domain.draft import Card
 _NO_SPECS = "Во входных данных характеристик нет."
 
 
+def _cell(value: str) -> str:
+    return value.replace("|", "\\|")
+
+
 def render_json(card: Card) -> dict[str, Any]:
     return {
         "name": card.product.name,
@@ -48,5 +52,5 @@ def render_markdown(card: Card) -> str:
 def _specs_table(card: Card) -> str:
     if not card.product.specs:
         return _NO_SPECS
-    rows = "\n".join(f"| {spec.name} | {spec.value} |" for spec in card.product.specs)
+    rows = "\n".join(f"| {_cell(spec.name)} | {_cell(spec.value)} |" for spec in card.product.specs)
     return f"| Характеристика | Значение |\n| --- | --- |\n{rows}"

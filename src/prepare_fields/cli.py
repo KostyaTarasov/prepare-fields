@@ -39,20 +39,27 @@ def _arguments(argv: Sequence[str] | None) -> argparse.Namespace:
 
 
 def _read(source: str) -> str:
-    if source == "-":
-        return sys.stdin.read()
-    path = Path(source)
-    if not path.is_file():
-        raise InputError(f"файл не найден: {source}")
-    return path.read_text(encoding="utf-8")
+    try:
+        if source == "-":
+            return sys.stdin.read()
+        path = Path(source)
+        if path.is_dir():
+            raise InputError(f"указан каталог, а не файл: {source}")
+        if not path.is_file():
+            raise InputError(f"файл не найден: {source}")
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as err:
+        raise InputError(f"файл не в UTF-8: {err}") from err
+    except OSError as err:
+        raise InputError(f"файл не прочитан: {err}") from err
 
 
-def _prepare(prepare: PrepareCard, product: Product) -> Card | None:
+def _prepare(prepare: PrepareCard, product: Product) -> Card | str:
     try:
         return prepare(product)
     except LLMError as err:
         log.error("товар %r: %s", product.name, err)
-        return None
+        return str(err).splitlines()[0]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -70,20 +77,32 @@ def main(argv: Sequence[str] | None = None) -> int:
         log.error("%s", err)
         return EXIT_CONFIG
 
+    log.info(
+        "провайдеры: %s",
+        "; ".join(
+            f"{provider.name} ({', '.join(provider.models)})" for provider in config.providers
+        ),
+    )
     prepare = PrepareCard(writer=ChatDraftWriter(config), prompts=FilePrompts())
     with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
-        results = pool.map(lambda product: _prepare(prepare, product), products)
-        cards = [card for card in results if card is not None]
+        results = list(pool.map(lambda product: _prepare(prepare, product), products))
+
+    cards = [result for result in results if isinstance(result, Card)]
+    failures = [
+        (product.name, result)
+        for product, result in zip(products, results, strict=True)
+        if isinstance(result, str)
+    ]
 
     if arguments.format == "json":
-        print(json.dumps([render_json(card) for card in cards], ensure_ascii=False, indent=2))
+        payload = [render_json(card) for card in cards]
+        payload += [{"name": name, "error": error} for name, error in failures]
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
-        print("\n\n---\n\n".join(render_markdown(card) for card in cards))
+        documents = [render_markdown(card) for card in cards]
+        if failures:
+            rows = "\n".join(f"- {name}: {error}" for name, error in failures)
+            documents.append(f"# Не удалось сформировать\n\n{rows}\n")
+        print("\n\n---\n\n".join(documents))
 
-    if len(cards) != len(products):
-        return EXIT_LLM
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+    return EXIT_LLM if failures else 0
