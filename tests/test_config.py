@@ -89,3 +89,16 @@ def test_duration_units(monkeypatch: pytest.MonkeyPatch, raw: str, seconds: floa
     _set(monkeypatch, LLM_TIMEOUT=raw)
 
     assert load(env_file=None).timeout == seconds
+
+
+def test_api_key_is_hidden_from_repr(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set(monkeypatch, LLM_API_KEY="секретный-ключ")
+
+    assert "секретный-ключ" not in repr(load(env_file=None))
+
+
+def test_zero_timeout_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set(monkeypatch, LLM_TIMEOUT="0s")
+
+    with pytest.raises(ConfigError, match="должно быть больше нуля"):
+        load(env_file=None)

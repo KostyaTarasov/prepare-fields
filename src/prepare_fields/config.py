@@ -1,6 +1,6 @@
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from prepare_fields.errors import ConfigError
@@ -13,7 +13,7 @@ _UNITS = {"ms": 0.001, "s": 1.0, "m": 60.0, None: 1.0}
 class Provider:
     name: str
     base_url: str
-    api_key: str
+    api_key: str = field(repr=False)
     models: tuple[str, ...]
 
 
@@ -40,7 +40,10 @@ def _duration(raw: str, name: str) -> float:
     match = _DURATION.match(raw.strip())
     if not match:
         raise ConfigError(f"{name}: ожидается длительность вида 60s или 500ms, получено {raw!r}")
-    return float(match.group(1)) * _UNITS[match.group(2)]
+    seconds = float(match.group(1)) * _UNITS[match.group(2)]
+    if seconds <= 0:
+        raise ConfigError(f"{name}: должно быть больше нуля, получено {raw!r}")
+    return seconds
 
 
 def _number(raw: str, name: str, low: float, high: float) -> float:
