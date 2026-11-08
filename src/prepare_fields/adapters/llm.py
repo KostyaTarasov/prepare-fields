@@ -1,3 +1,4 @@
+import http.client
 import json
 import logging
 import urllib.error
@@ -12,6 +13,10 @@ log = logging.getLogger(__name__)
 
 _SNIPPET = 300
 _USER_AGENT = "prepare-fields/0.1"
+
+
+def _hide_key(text: str, api_key: str) -> str:
+    return text.replace(api_key, "***") if api_key else text
 
 
 def _snippet(raw: bytes | str) -> str:
@@ -53,8 +58,6 @@ def parse_draft(content: str) -> Draft:
 
 @dataclass(frozen=True)
 class ChatDraftWriter:
-    """OpenAI-совместимый /chat/completions: модели перебираются по очереди."""
-
     config: Config
 
     def write(self, system: str, user: str) -> Draft:
@@ -93,11 +96,13 @@ class ChatDraftWriter:
             with urllib.request.urlopen(request, timeout=self.config.timeout) as response:
                 payload = json.load(response)
         except urllib.error.HTTPError as err:
-            raise LLMError(f"HTTP {err.code}: {_snippet(err.read())}") from err
-        except (urllib.error.URLError, TimeoutError) as err:
+            raise LLMError(
+                f"HTTP {err.code}: {_hide_key(_snippet(err.read()), provider.api_key)}"
+            ) from err
+        except (OSError, http.client.HTTPException) as err:
             raise LLMError(f"запрос не выполнен: {err}") from err
-        except json.JSONDecodeError as err:
-            raise LLMError(f"ответ API не является JSON: {err}") from err
+        except ValueError as err:
+            raise LLMError(f"тело ответа не прочитано как JSON: {err}") from err
 
         try:
             content = payload["choices"][0]["message"]["content"]
