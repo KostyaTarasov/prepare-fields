@@ -7,8 +7,10 @@
 Нужен [uv](https://docs.astral.sh/uv/). Он сам поставит Python и зависимости.
 
 ```bash
-cp .env.example .env && echo "вставьте LLM_API_KEY в .env" && make run
+cp -n .env.example .env && echo "впишите LLM_API_KEY в .env, затем make run"
 ```
+
+`-n` не даст затереть уже заполненный `.env`.
 
 Дальше:
 
